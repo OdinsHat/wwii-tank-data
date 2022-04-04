@@ -1,0 +1,37 @@
+name: Gridsome CI-CD
+
+on: [push]
+
+env:
+  # workaround until Actions supports something like exists()
+  HAS_GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  # GH PAGES
+  SITE_URL: https://hunsalz.github.io
+  PATH_PREFIX: /gridsome-starter-wikidata
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Build deployment
+        run: |
+          yarn install
+          yarn run build
+        env:
+          CI: true
+      - name: Deploy to GitHub Pages
+        if: env.HAS_GH_TOKEN != '' # run deployment not until GH_TOKEN is available
+        uses: Cecilapp/GitHub-Pages-deploy@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          build_dir: dist/
